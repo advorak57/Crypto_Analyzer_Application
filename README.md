@@ -14,3 +14,6 @@ Our project will contain the following components:
 4. Data Visualization: Resulting analysis will create visualizations, such as line charts, bar charts, and heatmaps, to help users understand the data and insights generated from your analysis. The potential for running Monte Carlo simulations is also possible. 
 
 5. User Interface: Though this project will not include a front end dashboard at this time, we will look to allow users to have the ability to input the cryptocurrencies they are interested in getting analyzed for the purpose of determining if they would be a good investment at this time. 
+
+#news portion
+Performing a market sentiment analysis for the application user on things like frequency of mention and overall popularity by geography. The goal of this portion will analyze articles about that crypto currency and judge the market's favorablity of that. 
