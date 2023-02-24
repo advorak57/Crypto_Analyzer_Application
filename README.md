@@ -47,5 +47,8 @@ We perform various types of analysis on the data collected using tools such as P
    ![Sharpe_Ratios](Images/Top10_Sharpe_Ratios.png)
  
 
-Through the use of these calculations visualized by the plots shown, we can determine the historical performance of any cryptocurrency the user wishes to search, make an estimation on price action in the future, and see how the user's cryptocurrency has faired in terms of risk/reward vs other top cryptocurrencies.  
+Through the use of these calculations visualized by the plots shown, we can determine the historical performance of any cryptocurrency the user wishes to search, make an estimation on price action in the future, and see how the user's cryptocurrency has faired in terms of risk/reward vs other top cryptocurrencies. 
+
+#### 4. Sentiment Analysis and Data Visualization:
+Using the Alyien News API we are able to search for articles that contain keywords for relavent crypto currencies. We use this to performa  sentiment analysis to judge whether the articles are positive or negative and also determine if the article is subjective or objective in nature. The scale for polarity (positive or negative sentiment) is on a scale of -1 to 1 and subjectivity is on a scale from 0 to 1. We use the sample of articles and then plot them into a quadrant graph to see where the general census is. 
 
