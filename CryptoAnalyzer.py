@@ -13,6 +13,40 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+# Import required libraries for news API Request
+import requests
+import os
+from pycoingecko import CoinGeckoAPI
+import pandas as pd
+from dotenv import load_dotenv
+from pytrends.request import TrendReq
+import hvplot.pandas
+import time
+import aylien_news_api
+from aylien_news_api.rest import ApiException
+from aylienapiclient import textapi
+from pprint import pprint
+import os
+from dotenv import load_dotenv
+from textblob import TextBlob
+import datetime
+import json
+import csv
+import matplotlib.pyplot as plt
+import datetime as dt
+import holoviews as hv
+import panel as pn
+import numpy as np
+import matplotlib.pyplot as plt
+from wordcloud import WordCloud
+
+
+
+# Check .env is being called
+load_dotenv()
+
+
+
 crypto_name = input("Please enter the full name of the cryptocurrency you want to search: ").lower()
 country_name = input("What country do you live in? Please use your country's initials for your answer.")
 trader_input = input("Are you a day trader? (yes/no): ")
@@ -168,3 +202,235 @@ plt.show()
 
 print(f"Here are the results of a 1000 simulations run to predict the future price of" + " " + crypto_name.capitalize() + " " + "in 1 years time, " 
       f"extrapolating from the previous" + " " + time_frame + " " + "of market data.") 
+
+
+
+
+
+
+
+api_id = os.getenv('X-AYLIEN-NewsAPI-Application-ID')
+api_key = os.getenv('X-AYLIEN-NewsAPI-Application-Key')
+
+configuration = aylien_news_api.Configuration()
+configuration.api_key['X-AYLIEN-NewsAPI-Application-ID'] = api_id
+configuration.api_key['X-AYLIEN-NewsAPI-Application-Key'] = api_key
+
+# Set Client variable
+client = aylien_news_api.ApiClient(configuration)
+api_instance = aylien_news_api.DefaultApi(client)
+
+
+import time
+
+def simulate_thinking():
+    print("Reading articles...", end="")
+    for i in range(3):
+        time.sleep(0.8)
+        print(".", end="")
+    print("\n")
+    final_statement = """Give me a few seconds to read every single article on the internet looking for information on your crypto.   I have now read articles from
+US JP GB CN JP DE IN GB FR IT CA KR RU BR AU ES MX ID NL SA TR CH PL SE BE TH IE IL AR VE NO AT NG ZA BD AE EG DK SG PH MY HK VN IR PK CL CO FI RO CZ PT NZ annnnnnnnd 3 2 1   DONE"""
+    words = final_statement.split(" ")
+    for word in words:
+        time.sleep(0.1)
+        print(word, end=" ")
+
+# Run Thinking...
+simulate_thinking()
+
+Countries =['US','JP','GB','FR','IT']
+field = 'cryptocurrency'
+for x in Countries:
+    try:
+    ## Make a call to the Stories endpoint for stories that meet the criteria of the search operators
+        api_response = api_instance.list_stories(       
+            title= '"bitcoin" OR "ethereum"',
+            source_locations_country= Countries,
+            # body= '',
+            language= ['en'],
+            published_at_start= 'NOW-30DAYS',
+            published_at_end= 'NOW',
+            per_page= 40,
+            sort_by= 'relevance'
+        )
+## Print the returned story
+
+        # pprint(api_response)
+    except ApiException as e:
+        print('Exception when calling DefaultApi->list_stories: %s\n' % e)  
+
+
+stories = api_response.stories
+data = []
+for story in stories:
+    published_at = story.published_at
+    headline = story.title
+    body_text = story.body
+    combined_text = headline + " " + body_text
+    polarity = TextBlob(combined_text).polarity
+    subjectivity = TextBlob(combined_text).subjectivity
+#     here i am removing the headline and body text so that i can plot the overall polarity and subjectivity. I will be adding this back in later for headline analysis
+# 'Headline': headline, 'BodyText': body_text,
+    data.append({'PublishDate': published_at, 'Polarity': polarity, 'Subjectivity': subjectivity})
+    Sentiment_df = pd.DataFrame(data)
+
+
+
+# Create the data frame from the collected data
+Sentiment_df = pd.DataFrame(data)  
+Sentiment_df = Sentiment_df.set_index(pd.DatetimeIndex(Sentiment_df['PublishDate']))
+Sentiment_df.drop(['PublishDate'], axis=1, inplace= True)
+Sentiment_df['Polarity'] = Sentiment_df['Polarity'].astype(float)
+Sentiment_df['Subjectivity'] = Sentiment_df['Subjectivity'].astype(float)
+
+print(Sentiment_df.dtypes)
+Sentiment_df
+
+
+
+quadrant_1 = sum(np.logical_and(Sentiment_df['Polarity'] < 0, Sentiment_df['Subjectivity'] < 0))
+# display(quadrant_1)
+
+quadrant_2 = sum(np.logical_and(Sentiment_df['Polarity'] > 0, Sentiment_df['Subjectivity'] < 0))
+# display(quadrant_2)
+
+quadrant_3 = sum(np.logical_and(Sentiment_df['Polarity'] < 0, Sentiment_df['Subjectivity'] > 0))
+# display(quadrant_3)
+
+quadrant_4 = sum(np.logical_and(Sentiment_df['Polarity'] > 0, Sentiment_df['Subjectivity'] > 0))
+# display(quadrant_4)
+
+
+fig, ax = plt.subplots()
+fig.set_size_inches(8, 6)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+
+plt.axhline(y=0, color="black", linestyle="--")
+plt.axvline(x=0, color="black", linestyle="--")
+
+plt.plot(Sentiment_df['Polarity'],Sentiment_df['Subjectivity'],"o")
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().axes.get_xaxis().set_visible(True)
+plt.gca().axes.get_yaxis().set_visible(True)
+
+
+plt.text(0,-0.95,'Subjectivity',horizontalalignment='center', verticalalignment='center')
+plt.text(-0.95,0,'Polarity', horizontalalignment='center', verticalalignment='center', rotation=90)
+
+plt.text(0,1,'Polarity(Positivity vs Negativity) vs Subjectivity(How much opinion is a factor)',horizontalalignment='center', verticalalignment='center')
+plt.text(0.4,0.4,'Count: ' + str(quadrant_4),horizontalalignment='center', verticalalignment='center')
+plt.text(-0.4,0.4,'Count: ' + str(quadrant_3), horizontalalignment='center', verticalalignment='center')
+plt.text(-0.4,-0.4,'Count: ' + str(quadrant_1),horizontalalignment='center', verticalalignment='center')
+plt.text(0.4,-0.4,'Count: ' + str(quadrant_2), horizontalalignment='center', verticalalignment='center')
+
+
+
+
+plt.xlim([-0.8, 0.8])
+plt.ylim([-0.8, 0.8])
+plt.show()
+
+
+import requests
+from bs4 import BeautifulSoup
+from textblob import TextBlob
+# url = "https://www.coindesk.com/markets/2023/02/23/bitcoin-hovers-near-24k-as-investors-mull-economic-uncertainties/"
+
+url = input("Have you any specific articles you would like analyzed : ").lower()
+
+import time
+def simulate_thinking():
+    print("Analyzing your article...", end="")
+    for i in range(3):
+        time.sleep(0.8)
+        print(".", end="")
+    print("\n")
+    final_statement = """Stand by, article almost fully analyzed. 3 2 1   DONE"""
+    words = final_statement.split(" ")
+    for word in words:
+        time.sleep(0.1)
+        print(word, end=" ")
+
+# Run Thinking...
+simulate_thinking()
+response = requests.get(url)
+html = response.text
+soup = BeautifulSoup(html, "html.parser")
+text = ""
+for p in soup.find_all("p"):
+    text += p.get_text()
+UserArticle = TextBlob(text)
+print(UserArticle)
+
+# print(UserArticle)
+SentimentBlob = TextBlob(text)
+ArticlePolarity = SentimentBlob.sentiment.polarity
+ArticleSubjectivity = SentimentBlob.sentiment.subjectivity
+# print(ArticlePolarity)
+# print(ArticleSubjectivity)
+ArticleData= {"Polarity Score":[ArticlePolarity],
+              "Subjectivity Score":[ArticleSubjectivity]}
+YourArticle_df = pd.DataFrame(ArticleData)
+YourArticle_df
+
+quadrant_1 = sum(np.logical_and(YourArticle_df['Polarity Score'] < 0, YourArticle_df['Subjectivity Score'] < 0))
+# display(quadrant_1)
+
+quadrant_2 = sum(np.logical_and(YourArticle_df['Polarity Score'] > 0, YourArticle_df['Subjectivity Score'] < 0))
+# display(quadrant_2)
+
+quadrant_3 = sum(np.logical_and(YourArticle_df['Polarity Score'] < 0, YourArticle_df['Subjectivity Score'] > 0))
+# display(quadrant_3)
+
+quadrant_4 = sum(np.logical_and(YourArticle_df['Polarity Score'] > 0, YourArticle_df['Subjectivity Score'] > 0))
+# display(quadrant_4)
+
+fig, ax = plt.subplots()
+fig.set_size_inches(8, 6)
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+
+plt.axhline(y=0, color="black", linestyle="--")
+plt.axvline(x=0, color="black", linestyle="--")
+
+plt.plot(YourArticle_df['Polarity Score'],YourArticle_df['Subjectivity Score'],"o")
+plt.gca().spines['top'].set_visible(False)
+plt.gca().spines['right'].set_visible(False)
+plt.gca().axes.get_xaxis().set_visible(True)
+plt.gca().axes.get_yaxis().set_visible(True)
+
+
+plt.text(0,-0.95,'Subjectivity Score',horizontalalignment='center', verticalalignment='center')
+plt.text(-0.95,0,'Polarity Score', horizontalalignment='center', verticalalignment='center', rotation=90)
+
+plt.text(0,1,'Your Articles Polarity(Positivity vs Negativity) vs Subjectivity(How much opinion is a factor)',horizontalalignment='center', verticalalignment='center')
+plt.text(0.4,0.4,'Count: ' + str(quadrant_4),horizontalalignment='center', verticalalignment='center')
+plt.text(-0.4,0.4,'Count: ' + str(quadrant_3), horizontalalignment='center', verticalalignment='center')
+plt.text(-0.4,-0.4,'Count: ' + str(quadrant_1),horizontalalignment='center', verticalalignment='center')
+plt.text(0.4,-0.4,'Count: ' + str(quadrant_2), horizontalalignment='center', verticalalignment='center')
+
+plt.xlim([-0.8, 0.8])
+plt.ylim([-0.8, 0.8])
+plt.show()
+
+
+import time
+def simulate_thinking():
+    print("Analysis complete...", end="")
+    for i in range(3):
+        time.sleep(0.8)
+        print(".", end="")
+    print("\n")
+    final_statement = """I hope you enjoyed my analysis. Invoice for my services will be sending in 3 2 1 Sent!
+Please check the spam folder in your email."""
+    words = final_statement.split(" ")
+    for word in words:
+        time.sleep(0.2)
+        print(word, end=" ")
+
+# Run Thinking...
+simulate_thinking()
+
